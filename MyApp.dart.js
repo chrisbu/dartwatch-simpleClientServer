@@ -278,8 +278,14 @@ $defProp(Object.prototype, "is$RegExp", function() {
 $defProp(Object.prototype, "is$html_Element", function() {
   return false;
 });
+$defProp(Object.prototype, "open$3", function($0, $1, $2) {
+  return this.noSuchMethod("open", [$0, $1, $2]);
+});
 $defProp(Object.prototype, "remove$0", function() {
   return this.noSuchMethod("remove", []);
+});
+$defProp(Object.prototype, "send$0", function() {
+  return this.noSuchMethod("send", []);
 });
 function IndexOutOfRangeException(_index) {
   this._index = _index;
@@ -287,6 +293,12 @@ function IndexOutOfRangeException(_index) {
 IndexOutOfRangeException.prototype.is$IndexOutOfRangeException = function(){return true};
 IndexOutOfRangeException.prototype.toString = function() {
   return ("IndexOutOfRangeException: " + this._index);
+}
+function IllegalAccessException() {
+
+}
+IllegalAccessException.prototype.toString = function() {
+  return "Attempt to modify an immutable object";
 }
 function NoSuchMethodException(_receiver, _functionName, _arguments, _existingArgumentNames) {
   this._receiver = _receiver;
@@ -527,6 +539,38 @@ ListIterator.prototype.next = function() {
   }
   return this._array.$index(this._pos++);
 }
+function ImmutableMap(keyValuePairs) {
+  this._internal = _map(keyValuePairs);
+}
+ImmutableMap.prototype.is$Map = function(){return true};
+ImmutableMap.prototype.$index = function(key) {
+  return this._internal.$index(key);
+}
+ImmutableMap.prototype.get$length = function() {
+  return this._internal.get$length();
+}
+ImmutableMap.prototype.forEach = function(f) {
+  this._internal.forEach$1(f);
+}
+ImmutableMap.prototype.containsKey = function(key) {
+  return this._internal.containsKey(key);
+}
+ImmutableMap.prototype.$setindex = function(key, value) {
+  $throw(const$0006);
+}
+ImmutableMap.prototype.clear$_ = function() {
+  $throw(const$0006);
+}
+ImmutableMap.prototype.remove = function(key) {
+  $throw(const$0006);
+}
+ImmutableMap.prototype.toString = function() {
+  return Maps.mapToString(this);
+}
+ImmutableMap.prototype.clear$0 = ImmutableMap.prototype.clear$_;
+ImmutableMap.prototype.forEach$1 = function($0) {
+  return this.forEach(to$call$2($0));
+};
 function JSSyntaxRegExp(pattern, multiLine, ignoreCase) {
   JSSyntaxRegExp._create$ctor.call(this, pattern, $add$(($eq$(multiLine, true) ? "m" : ""), ($eq$(ignoreCase, true) ? "i" : "")));
 }
@@ -538,8 +582,34 @@ JSSyntaxRegExp._create$ctor = function(pattern, flags) {
 }
 JSSyntaxRegExp._create$ctor.prototype = JSSyntaxRegExp.prototype;
 JSSyntaxRegExp.prototype.is$RegExp = function(){return true};
+JSSyntaxRegExp.prototype.firstMatch = function(str) {
+  var m = this._exec(str);
+  return m == null ? null : new MatchImplementation(this.pattern, str, this._matchStart(m), this.get$_lastIndex(), m);
+}
+JSSyntaxRegExp.prototype._exec = function(str) {
+  return this.re.exec(str);
+}
+JSSyntaxRegExp.prototype._matchStart = function(m) {
+  return m.index;
+}
+JSSyntaxRegExp.prototype.get$_lastIndex = function() {
+  return this.re.lastIndex;
+}
 JSSyntaxRegExp.prototype.hasMatch = function(str) {
   return this.re.test(str);
+}
+function MatchImplementation(pattern, str, _start, _end, _groups) {
+  this.pattern = pattern;
+  this.str = str;
+  this._start = _start;
+  this._end = _end;
+  this._groups = _groups;
+}
+MatchImplementation.prototype.group = function(groupIndex) {
+  return this._groups.$index(groupIndex);
+}
+MatchImplementation.prototype.$index = function(groupIndex) {
+  return this._groups.$index(groupIndex);
 }
 var NumImplementation = Number;
 NumImplementation.prototype.hashCode = function() {
@@ -729,11 +799,25 @@ HashMapImplementation.prototype.forEach = function(f) {
     }
   }
 }
+HashMapImplementation.prototype.containsKey = function(key) {
+  return (this._probeForLookup(key) != (-1));
+}
 HashMapImplementation.prototype.toString = function() {
   return Maps.mapToString(this);
 }
 HashMapImplementation.prototype.clear$0 = HashMapImplementation.prototype.clear$_;
 HashMapImplementation.prototype.forEach$1 = function($0) {
+  return this.forEach(to$call$2($0));
+};
+$inherits(HashMapImplementation_Dynamic$DoubleLinkedQueueEntry_KeyValuePair, HashMapImplementation);
+function HashMapImplementation_Dynamic$DoubleLinkedQueueEntry_KeyValuePair() {
+  this._numberOfEntries = (0);
+  this._numberOfDeleted = (0);
+  this._loadLimit = HashMapImplementation._computeLoadLimit((8));
+  this._keys = new Array((8));
+  this._values = new Array((8));
+}
+HashMapImplementation_Dynamic$DoubleLinkedQueueEntry_KeyValuePair.prototype.forEach$1 = function($0) {
   return this.forEach(to$call$2($0));
 };
 $inherits(HashMapImplementation_dart_core_String$dart_core_String, HashMapImplementation);
@@ -834,6 +918,60 @@ HashSetIterator.prototype._advance = function() {
 function _DeletedKeySentinel() {
 
 }
+function KeyValuePair(key, value) {
+  this.key$_ = key;
+  this.value = value;
+}
+KeyValuePair.prototype.get$value = function() { return this.value; };
+KeyValuePair.prototype.set$value = function(value) { return this.value = value; };
+function LinkedHashMapImplementation() {
+  this._map = new HashMapImplementation_Dynamic$DoubleLinkedQueueEntry_KeyValuePair();
+  this._list = new DoubleLinkedQueue_KeyValuePair();
+}
+LinkedHashMapImplementation.prototype.is$Map = function(){return true};
+LinkedHashMapImplementation.prototype.$setindex = function(key, value) {
+  if (this._map.containsKey(key)) {
+    this._map.$index(key).get$element().set$value(value);
+  }
+  else {
+    this._list.addLast(new KeyValuePair(key, value));
+    this._map.$setindex(key, this._list.lastEntry());
+  }
+}
+LinkedHashMapImplementation.prototype.$index = function(key) {
+  var entry = this._map.$index(key);
+  if (null == entry) return null;
+  return entry.get$element().get$value();
+}
+LinkedHashMapImplementation.prototype.remove = function(key) {
+  var entry = this._map.remove(key);
+  if (null == entry) return null;
+  entry.remove();
+  return entry.get$element().get$value();
+}
+LinkedHashMapImplementation.prototype.forEach = function(f) {
+  this._list.forEach(function _(entry) {
+    f(entry.key$_, entry.value);
+  }
+  );
+}
+LinkedHashMapImplementation.prototype.containsKey = function(key) {
+  return this._map.containsKey(key);
+}
+LinkedHashMapImplementation.prototype.get$length = function() {
+  return this._map.get$length();
+}
+LinkedHashMapImplementation.prototype.clear$_ = function() {
+  this._map.clear$_();
+  this._list.clear$_();
+}
+LinkedHashMapImplementation.prototype.toString = function() {
+  return Maps.mapToString(this);
+}
+LinkedHashMapImplementation.prototype.clear$0 = LinkedHashMapImplementation.prototype.clear$_;
+LinkedHashMapImplementation.prototype.forEach$1 = function($0) {
+  return this.forEach(to$call$2($0));
+};
 function Maps() {}
 Maps.mapToString = function(m) {
   var result = new StringBufferImpl("");
@@ -876,10 +1014,21 @@ DoubleLinkedQueueEntry.prototype.remove = function() {
   this._previous = null;
   return this._element;
 }
+DoubleLinkedQueueEntry.prototype._asNonSentinelEntry = function() {
+  return this;
+}
+DoubleLinkedQueueEntry.prototype.previousEntry = function() {
+  return this._previous._asNonSentinelEntry();
+}
 DoubleLinkedQueueEntry.prototype.get$element = function() {
   return this._element;
 }
 DoubleLinkedQueueEntry.prototype.remove$0 = DoubleLinkedQueueEntry.prototype.remove;
+$inherits(DoubleLinkedQueueEntry_KeyValuePair, DoubleLinkedQueueEntry);
+function DoubleLinkedQueueEntry_KeyValuePair(e) {
+  this._element = e;
+}
+DoubleLinkedQueueEntry_KeyValuePair.prototype.remove$0 = DoubleLinkedQueueEntry_KeyValuePair.prototype.remove;
 $inherits(_DoubleLinkedQueueEntrySentinel, DoubleLinkedQueueEntry);
 function _DoubleLinkedQueueEntrySentinel() {
   DoubleLinkedQueueEntry.call(this, null);
@@ -888,10 +1037,18 @@ function _DoubleLinkedQueueEntrySentinel() {
 _DoubleLinkedQueueEntrySentinel.prototype.remove = function() {
   $throw(const$0002);
 }
+_DoubleLinkedQueueEntrySentinel.prototype._asNonSentinelEntry = function() {
+  return null;
+}
 _DoubleLinkedQueueEntrySentinel.prototype.get$element = function() {
   $throw(const$0002);
 }
 _DoubleLinkedQueueEntrySentinel.prototype.remove$0 = _DoubleLinkedQueueEntrySentinel.prototype.remove;
+$inherits(_DoubleLinkedQueueEntrySentinel_KeyValuePair, _DoubleLinkedQueueEntrySentinel);
+function _DoubleLinkedQueueEntrySentinel_KeyValuePair() {
+  DoubleLinkedQueueEntry_KeyValuePair.call(this, null);
+  this._link(this, this);
+}
 function DoubleLinkedQueue() {
   this._sentinel = new _DoubleLinkedQueueEntrySentinel();
 }
@@ -907,6 +1064,9 @@ DoubleLinkedQueue.prototype.addAll = function(collection) {
     var e = $$i.next();
     this.add(e);
   }
+}
+DoubleLinkedQueue.prototype.lastEntry = function() {
+  return this._sentinel.previousEntry();
 }
 DoubleLinkedQueue.prototype.get$length = function() {
   var counter = (0);
@@ -952,6 +1112,11 @@ DoubleLinkedQueue.prototype.filter$1 = function($0) {
 DoubleLinkedQueue.prototype.forEach$1 = function($0) {
   return this.forEach(to$call$1($0));
 };
+$inherits(DoubleLinkedQueue_KeyValuePair, DoubleLinkedQueue);
+function DoubleLinkedQueue_KeyValuePair() {
+  this._sentinel = new _DoubleLinkedQueueEntrySentinel_KeyValuePair();
+}
+DoubleLinkedQueue_KeyValuePair.prototype.clear$0 = DoubleLinkedQueue_KeyValuePair.prototype.clear$_;
 function _DoubleLinkedQueueIterator(_sentinel) {
   this._sentinel = _sentinel;
   this._currentEntry = this._sentinel;
@@ -1124,6 +1289,20 @@ _FunctionImplementation.prototype._genStub = function(argsLength, names) {
       return new Function('$f', 'return ' + f + '').call(null, this);
     
 }
+function _map(itemsAndKeys) {
+  var ret = new LinkedHashMapImplementation();
+  for (var i = (0);
+   i < itemsAndKeys.get$length(); ) {
+    ret.$setindex(itemsAndKeys.$index(i++), itemsAndKeys.$index(i++));
+  }
+  return ret;
+}
+function _constMap(itemsAndKeys) {
+  return new ImmutableMap(itemsAndKeys);
+}
+$dynamic("get$on").EventTarget = function() {
+  return new _EventsImpl(this);
+}
 $dynamic("$dom_addEventListener$3").EventTarget = function($0, $1, $2) {
   if (Object.getPrototypeOf(this).hasOwnProperty("$dom_addEventListener$3")) {
     return this.addEventListener($0, $wrap_call$1(to$call$1($1)), $2);
@@ -1172,6 +1351,9 @@ $dynamic("get$attributes").Element = function() {
 $dynamic("get$elements").Element = function() {
   return new _ChildrenElementList._wrap$ctor(this);
 }
+$dynamic("get$on").Element = function() {
+  return new _ElementEventsImpl(this);
+}
 $dynamic("get$$$dom_children").Element = function() {
   return this.children;
 }
@@ -1184,14 +1366,23 @@ $dynamic("set$$$dom_className").Element = function(value) {
 $dynamic("get$$$dom_firstElementChild").Element = function() {
   return this.firstElementChild;
 }
+$dynamic("get$innerHTML").Element = function() { return this.innerHTML; };
 $dynamic("set$innerHTML").Element = function(value) { return this.innerHTML = value; };
 $dynamic("get$$$dom_lastElementChild").Element = function() {
   return this.lastElementChild;
 }
+$dynamic("get$click").Element = function() {
+  return this.click.bind(this);
+}
+$dynamic("get$on").AbstractWorker = function() {
+  return new _AbstractWorkerEventsImpl(this);
+}
 $dynamic("$dom_addEventListener$3").AbstractWorker = function($0, $1, $2) {
   return this.addEventListener($0, $wrap_call$1(to$call$1($1)), $2);
 };
-function _EventsImpl() {}
+function _EventsImpl(_ptr) {
+  this._ptr = _ptr;
+}
 _EventsImpl.prototype.$index = function(type) {
   return this._get(type.toLowerCase());
 }
@@ -1199,29 +1390,58 @@ _EventsImpl.prototype._get = function(type) {
   return new _EventListenerListImpl(this._ptr, type);
 }
 $inherits(_AbstractWorkerEventsImpl, _EventsImpl);
-function _AbstractWorkerEventsImpl() {}
+function _AbstractWorkerEventsImpl(_ptr) {
+  _EventsImpl.call(this, _ptr);
+}
 $dynamic("get$name").HTMLAnchorElement = function() { return this.name; };
 $dynamic("get$name").WebKitAnimation = function() { return this.name; };
 $dynamic("get$length").WebKitAnimationList = function() { return this.length; };
 $dynamic("get$name").HTMLAppletElement = function() { return this.name; };
 $dynamic("get$name").Attr = function() { return this.name; };
 $dynamic("get$value").Attr = function() { return this.value; };
+$dynamic("set$value").Attr = function(value) { return this.value = value; };
 $dynamic("get$length").AudioBuffer = function() { return this.length; };
+$dynamic("get$on").AudioContext = function() {
+  return new _AudioContextEventsImpl(this);
+}
 $inherits(_AudioContextEventsImpl, _EventsImpl);
-function _AudioContextEventsImpl() {}
+function _AudioContextEventsImpl(_ptr) {
+  _EventsImpl.call(this, _ptr);
+}
+$dynamic("get$on").HTMLMediaElement = function() {
+  return new _MediaElementEventsImpl(this);
+}
+$dynamic("get$readyState").HTMLMediaElement = function() { return this.readyState; };
 $dynamic("get$name").AudioParam = function() { return this.name; };
 $dynamic("get$value").AudioParam = function() { return this.value; };
+$dynamic("set$value").AudioParam = function(value) { return this.value = value; };
+$dynamic("get$on").BatteryManager = function() {
+  return new _BatteryManagerEventsImpl(this);
+}
 $dynamic("$dom_addEventListener$3").BatteryManager = function($0, $1, $2) {
   return this.addEventListener($0, $wrap_call$1(to$call$1($1)), $2);
 };
 $inherits(_BatteryManagerEventsImpl, _EventsImpl);
-function _BatteryManagerEventsImpl() {}
+function _BatteryManagerEventsImpl(_ptr) {
+  _EventsImpl.call(this, _ptr);
+}
+$dynamic("get$on").HTMLBodyElement = function() {
+  return new _BodyElementEventsImpl(this);
+}
 $inherits(_ElementEventsImpl, _EventsImpl);
-function _ElementEventsImpl() {}
+function _ElementEventsImpl(_ptr) {
+  _EventsImpl.call(this, _ptr);
+}
+_ElementEventsImpl.prototype.get$click = function() {
+  return this._get("click");
+}
 $inherits(_BodyElementEventsImpl, _ElementEventsImpl);
-function _BodyElementEventsImpl() {}
+function _BodyElementEventsImpl(_ptr) {
+  _ElementEventsImpl.call(this, _ptr);
+}
 $dynamic("get$name").HTMLButtonElement = function() { return this.name; };
 $dynamic("get$value").HTMLButtonElement = function() { return this.value; };
+$dynamic("set$value").HTMLButtonElement = function(value) { return this.value = value; };
 $dynamic("get$length").CharacterData = function() { return this.length; };
 $dynamic("get$name").WebKitCSSKeyframesRule = function() { return this.name; };
 $dynamic("get$length").CSSRuleList = function() { return this.length; };
@@ -1229,11 +1449,17 @@ $dynamic("get$length").CSSStyleDeclaration = function() { return this.length; };
 $dynamic("get$length").CSSValueList = function() { return this.length; };
 $dynamic("get$length").ClientRectList = function() { return this.length; };
 var _ConsoleImpl = (typeof console == 'undefined' ? {} : console);
+$dynamic("get$on").DOMApplicationCache = function() {
+  return new _DOMApplicationCacheEventsImpl(this);
+}
+$dynamic("get$status").DOMApplicationCache = function() { return this.status; };
 $dynamic("$dom_addEventListener$3").DOMApplicationCache = function($0, $1, $2) {
   return this.addEventListener($0, $wrap_call$1(to$call$1($1)), $2);
 };
 $inherits(_DOMApplicationCacheEventsImpl, _EventsImpl);
-function _DOMApplicationCacheEventsImpl() {}
+function _DOMApplicationCacheEventsImpl(_ptr) {
+  _EventsImpl.call(this, _ptr);
+}
 $dynamic("get$name").DOMException = function() { return this.name; };
 $dynamic("get$name").DOMFileSystem = function() { return this.name; };
 $dynamic("get$name").DOMFileSystemSync = function() { return this.name; };
@@ -1246,6 +1472,7 @@ $dynamic("add$1").DOMTokenList = function($0) {
   return this.add($0);
 };
 $dynamic("get$value").DOMSettableTokenList = function() { return this.value; };
+$dynamic("set$value").DOMSettableTokenList = function(value) { return this.value = value; };
 $dynamic("is$List").DOMStringList = function(){return true};
 $dynamic("is$Collection").DOMStringList = function(){return true};
 $dynamic("get$length").DOMStringList = function() { return this.length; };
@@ -1292,24 +1519,44 @@ $dynamic("add$1").DataTransferItemList = function($0) {
 $dynamic("clear$0").DataTransferItemList = function() {
   return this.clear();
 };
+$dynamic("get$on").WorkerContext = function() {
+  return new _WorkerContextEventsImpl(this);
+}
 $dynamic("$dom_addEventListener$3").WorkerContext = function($0, $1, $2) {
   return this.addEventListener($0, $wrap_call$1(to$call$1($1)), $2);
 };
+$dynamic("get$on").DedicatedWorkerContext = function() {
+  return new _DedicatedWorkerContextEventsImpl(this);
+}
 $inherits(_WorkerContextEventsImpl, _EventsImpl);
-function _WorkerContextEventsImpl() {}
+function _WorkerContextEventsImpl(_ptr) {
+  _EventsImpl.call(this, _ptr);
+}
 $inherits(_DedicatedWorkerContextEventsImpl, _WorkerContextEventsImpl);
-function _DedicatedWorkerContextEventsImpl() {}
+function _DedicatedWorkerContextEventsImpl(_ptr) {
+  _WorkerContextEventsImpl.call(this, _ptr);
+}
+$dynamic("get$on").DeprecatedPeerConnection = function() {
+  return new _DeprecatedPeerConnectionEventsImpl(this);
+}
+$dynamic("get$readyState").DeprecatedPeerConnection = function() { return this.readyState; };
 $dynamic("$dom_addEventListener$3").DeprecatedPeerConnection = function($0, $1, $2) {
   return this.addEventListener($0, $wrap_call$1(to$call$1($1)), $2);
 };
 $inherits(_DeprecatedPeerConnectionEventsImpl, _EventsImpl);
-function _DeprecatedPeerConnectionEventsImpl() {}
+function _DeprecatedPeerConnectionEventsImpl(_ptr) {
+  _EventsImpl.call(this, _ptr);
+}
 $dynamic("get$name").Entry = function() { return this.name; };
 $dynamic("get$name").EntrySync = function() { return this.name; };
 $dynamic("remove$0").EntrySync = function() {
   return this.remove();
 };
 $dynamic("is$html_Element").HTMLDocument = function(){return true};
+$dynamic("get$on").HTMLDocument = function() {
+  return new _DocumentEventsImpl(this);
+}
+$dynamic("get$readyState").HTMLDocument = function() { return this.readyState; };
 $dynamic("query").HTMLDocument = function(selectors) {
   if (const$0004.hasMatch(selectors)) {
     return this.getElementById(selectors.substring((1)));
@@ -1320,7 +1567,15 @@ $dynamic("$dom_querySelector").HTMLDocument = function(selectors) {
   return this.querySelector(selectors);
 }
 $inherits(_DocumentEventsImpl, _ElementEventsImpl);
-function _DocumentEventsImpl() {}
+function _DocumentEventsImpl(_ptr) {
+  _ElementEventsImpl.call(this, _ptr);
+}
+_DocumentEventsImpl.prototype.get$click = function() {
+  return this._get("click");
+}
+_DocumentEventsImpl.prototype.get$readyStateChange = function() {
+  return this._get("readystatechange");
+}
 function FilteredElementList(node) {
   this._childNodes = node.get$nodes();
   this._node = node;
@@ -1399,6 +1654,11 @@ $dynamic("get$elements").DocumentFragment = function() {
   }
   return this._elements;
 }
+$dynamic("get$innerHTML").DocumentFragment = function() {
+  var e = _ElementFactoryProvider.Element$tag$factory("div");
+  e.get$nodes().add(this.cloneNode(true));
+  return e.get$innerHTML();
+}
 $dynamic("set$innerHTML").DocumentFragment = function(value) {
   this.get$nodes().clear$_();
   var e = _ElementFactoryProvider.Element$tag$factory("div");
@@ -1408,6 +1668,15 @@ $dynamic("set$innerHTML").DocumentFragment = function(value) {
 }
 $dynamic("get$parent").DocumentFragment = function() {
   return null;
+}
+$dynamic("click").DocumentFragment = function() {
+
+}
+$dynamic("get$click").DocumentFragment = function() {
+  return this.click.bind(this);
+}
+$dynamic("get$on").DocumentFragment = function() {
+  return new _ElementEventsImpl(this);
 }
 $dynamic("get$name").DocumentType = function() { return this.name; };
 _ChildrenElementList._wrap$ctor = function(element) {
@@ -1628,6 +1897,9 @@ function _ElementAttributeMap(_element) {
   this._html_element = _element;
 }
 _ElementAttributeMap.prototype.is$Map = function(){return true};
+_ElementAttributeMap.prototype.containsKey = function(key) {
+  return this._html_element.hasAttribute(key);
+}
 _ElementAttributeMap.prototype.$index = function(key) {
   return this._html_element.getAttribute(key);
 }
@@ -1663,6 +1935,9 @@ _ElementAttributeMap.prototype.forEach$1 = function($0) {
 };
 function _DataAttributeMap() {}
 _DataAttributeMap.prototype.is$Map = function(){return true};
+_DataAttributeMap.prototype.containsKey = function(key) {
+  return this.$$dom_attributes.containsKey(this._attr(key));
+}
 _DataAttributeMap.prototype.$index = function(key) {
   return this.$$dom_attributes.$index(this._attr(key));
 }
@@ -1794,6 +2069,31 @@ _SimpleClientRect.prototype.toString = function() {
 }
 function _ElementRectImpl() {}
 function _ElementFactoryProvider() {}
+_ElementFactoryProvider.Element$html$factory = function(html) {
+  var parentTag = "div";
+  var tag;
+  var match = const$0005.firstMatch(html);
+  if (null != match) {
+    tag = match.group((1)).toLowerCase();
+    if (const$0007.containsKey(tag)) {
+      parentTag = const$0007.$index(tag);
+    }
+  }
+  var temp = _ElementFactoryProvider.Element$tag$factory(parentTag);
+  temp.set$innerHTML(html);
+  var element;
+  if (temp.get$elements().get$length() == (1)) {
+    element = temp.get$elements().get$first();
+  }
+  else if (parentTag == "html" && temp.get$elements().get$length() == (2)) {
+    element = temp.get$elements().$index(tag == "head" ? (0) : (1));
+  }
+  else {
+    $throw(new IllegalArgumentException($add$(("HTML had " + temp.get$elements().get$length() + " "), "top level elements but 1 expected")));
+  }
+  element.remove();
+  return element;
+}
 _ElementFactoryProvider.Element$tag$factory = function(tag) {
   return document.createElement(tag)
 }
@@ -1801,11 +2101,17 @@ $dynamic("get$name").HTMLEmbedElement = function() { return this.name; };
 $dynamic("get$length").EntryArray = function() { return this.length; };
 $dynamic("get$length").EntryArraySync = function() { return this.length; };
 $dynamic("get$name").EventException = function() { return this.name; };
+$dynamic("get$on").EventSource = function() {
+  return new _EventSourceEventsImpl(this);
+}
+$dynamic("get$readyState").EventSource = function() { return this.readyState; };
 $dynamic("$dom_addEventListener$3").EventSource = function($0, $1, $2) {
   return this.addEventListener($0, $wrap_call$1(to$call$1($1)), $2);
 };
 $inherits(_EventSourceEventsImpl, _EventsImpl);
-function _EventSourceEventsImpl() {}
+function _EventSourceEventsImpl(_ptr) {
+  _EventsImpl.call(this, _ptr);
+}
 function _EventListenerListImpl(_ptr, _type) {
   this._ptr = _ptr;
   this._type = _type;
@@ -1824,17 +2130,29 @@ $dynamic("get$name").HTMLFieldSetElement = function() { return this.name; };
 $dynamic("get$name").File = function() { return this.name; };
 $dynamic("get$name").FileException = function() { return this.name; };
 $dynamic("get$length").FileList = function() { return this.length; };
+$dynamic("get$on").FileReader = function() {
+  return new _FileReaderEventsImpl(this);
+}
+$dynamic("get$readyState").FileReader = function() { return this.readyState; };
 $dynamic("$dom_addEventListener$3").FileReader = function($0, $1, $2) {
   return this.addEventListener($0, $wrap_call$1(to$call$1($1)), $2);
 };
 $inherits(_FileReaderEventsImpl, _EventsImpl);
-function _FileReaderEventsImpl() {}
+function _FileReaderEventsImpl(_ptr) {
+  _EventsImpl.call(this, _ptr);
+}
+$dynamic("get$on").FileWriter = function() {
+  return new _FileWriterEventsImpl(this);
+}
 $dynamic("get$length").FileWriter = function() { return this.length; };
+$dynamic("get$readyState").FileWriter = function() { return this.readyState; };
 $dynamic("$dom_addEventListener$3").FileWriter = function($0, $1, $2) {
   return this.addEventListener($0, $wrap_call$1(to$call$1($1)), $2);
 };
 $inherits(_FileWriterEventsImpl, _EventsImpl);
-function _FileWriterEventsImpl() {}
+function _FileWriterEventsImpl(_ptr) {
+  _EventsImpl.call(this, _ptr);
+}
 $dynamic("get$length").FileWriterSync = function() { return this.length; };
 $dynamic("is$List").Float32Array = function(){return true};
 $dynamic("is$Collection").Float32Array = function(){return true};
@@ -1917,8 +2235,13 @@ $dynamic("forEach$1").Float64Array = function($0) {
 $dynamic("get$length").HTMLFormElement = function() { return this.length; };
 $dynamic("get$name").HTMLFormElement = function() { return this.name; };
 $dynamic("get$name").HTMLFrameElement = function() { return this.name; };
+$dynamic("get$on").HTMLFrameSetElement = function() {
+  return new _FrameSetElementEventsImpl(this);
+}
 $inherits(_FrameSetElementEventsImpl, _ElementEventsImpl);
-function _FrameSetElementEventsImpl() {}
+function _FrameSetElementEventsImpl(_ptr) {
+  _ElementEventsImpl.call(this, _ptr);
+}
 $dynamic("get$length").HTMLAllCollection = function() { return this.length; };
 $dynamic("is$List").HTMLCollection = function(){return true};
 $dynamic("is$Collection").HTMLCollection = function(){return true};
@@ -1964,12 +2287,17 @@ $dynamic("get$length").HTMLOptionsCollection = function() {
 }
 $dynamic("get$length").History = function() { return this.length; };
 $dynamic("get$value").IDBCursorWithValue = function() { return this.value; };
+$dynamic("get$on").IDBDatabase = function() {
+  return new _IDBDatabaseEventsImpl(this);
+}
 $dynamic("get$name").IDBDatabase = function() { return this.name; };
 $dynamic("$dom_addEventListener$3").IDBDatabase = function($0, $1, $2) {
   return this.addEventListener($0, $wrap_call$1(to$call$1($1)), $2);
 };
 $inherits(_IDBDatabaseEventsImpl, _EventsImpl);
-function _IDBDatabaseEventsImpl() {}
+function _IDBDatabaseEventsImpl(_ptr) {
+  _EventsImpl.call(this, _ptr);
+}
 $dynamic("get$name").IDBDatabaseException = function() { return this.name; };
 $dynamic("get$name").IDBIndex = function() { return this.name; };
 $dynamic("get$name").IDBObjectStore = function() { return this.name; };
@@ -1979,6 +2307,10 @@ $dynamic("add$1").IDBObjectStore = function($0) {
 $dynamic("clear$0").IDBObjectStore = function() {
   return this.clear();
 };
+$dynamic("get$on").IDBRequest = function() {
+  return new _IDBRequestEventsImpl(this);
+}
+$dynamic("get$readyState").IDBRequest = function() { return this.readyState; };
 $dynamic("$dom_addEventListener$3").IDBRequest = function($0, $1, $2) {
   if (Object.getPrototypeOf(this).hasOwnProperty("$dom_addEventListener$3")) {
     return this.addEventListener($0, $wrap_call$1(to$call$1($1)), $2);
@@ -1986,23 +2318,41 @@ $dynamic("$dom_addEventListener$3").IDBRequest = function($0, $1, $2) {
   return Object.prototype.$dom_addEventListener$3.call(this, $0, $1, $2);
 };
 $inherits(_IDBRequestEventsImpl, _EventsImpl);
-function _IDBRequestEventsImpl() {}
+function _IDBRequestEventsImpl(_ptr) {
+  _EventsImpl.call(this, _ptr);
+}
+$dynamic("get$on").IDBTransaction = function() {
+  return new _IDBTransactionEventsImpl(this);
+}
 $dynamic("$dom_addEventListener$3").IDBTransaction = function($0, $1, $2) {
   return this.addEventListener($0, $wrap_call$1(to$call$1($1)), $2);
 };
 $inherits(_IDBTransactionEventsImpl, _EventsImpl);
-function _IDBTransactionEventsImpl() {}
+function _IDBTransactionEventsImpl(_ptr) {
+  _EventsImpl.call(this, _ptr);
+}
+$dynamic("get$on").IDBVersionChangeRequest = function() {
+  return new _IDBVersionChangeRequestEventsImpl(this);
+}
 $dynamic("$dom_addEventListener$3").IDBVersionChangeRequest = function($0, $1, $2) {
   return this.addEventListener($0, $wrap_call$1(to$call$1($1)), $2);
 };
 $inherits(_IDBVersionChangeRequestEventsImpl, _IDBRequestEventsImpl);
-function _IDBVersionChangeRequestEventsImpl() {}
+function _IDBVersionChangeRequestEventsImpl(_ptr) {
+  _IDBRequestEventsImpl.call(this, _ptr);
+}
 $dynamic("get$name").HTMLIFrameElement = function() { return this.name; };
 $dynamic("get$name").HTMLImageElement = function() { return this.name; };
+$dynamic("get$on").HTMLInputElement = function() {
+  return new _InputElementEventsImpl(this);
+}
 $dynamic("get$name").HTMLInputElement = function() { return this.name; };
 $dynamic("get$value").HTMLInputElement = function() { return this.value; };
+$dynamic("set$value").HTMLInputElement = function(value) { return this.value = value; };
 $inherits(_InputElementEventsImpl, _ElementEventsImpl);
-function _InputElementEventsImpl() {}
+function _InputElementEventsImpl(_ptr) {
+  _ElementEventsImpl.call(this, _ptr);
+}
 $dynamic("is$List").Int16Array = function(){return true};
 $dynamic("is$Collection").Int16Array = function(){return true};
 $dynamic("get$length").Int16Array = function() { return this.length; };
@@ -2120,13 +2470,23 @@ $dynamic("filter$1").Int8Array = function($0) {
 $dynamic("forEach$1").Int8Array = function($0) {
   return this.forEach($wrap_call$1(to$call$1($0)));
 };
+$dynamic("get$on").JavaScriptAudioNode = function() {
+  return new _JavaScriptAudioNodeEventsImpl(this);
+}
 $dynamic("$dom_addEventListener$3").JavaScriptAudioNode = function($0, $1, $2) {
   return this.addEventListener($0, $wrap_call$1(to$call$1($1)), $2);
 };
 $inherits(_JavaScriptAudioNodeEventsImpl, _EventsImpl);
-function _JavaScriptAudioNodeEventsImpl() {}
+function _JavaScriptAudioNodeEventsImpl(_ptr) {
+  _EventsImpl.call(this, _ptr);
+}
 $dynamic("get$name").HTMLKeygenElement = function() { return this.name; };
 $dynamic("get$value").HTMLLIElement = function() { return this.value; };
+$dynamic("set$value").HTMLLIElement = function(value) { return this.value = value; };
+$dynamic("get$on").MediaStream = function() {
+  return new _MediaStreamEventsImpl(this);
+}
+$dynamic("get$readyState").MediaStream = function() { return this.readyState; };
 $dynamic("$dom_addEventListener$3").MediaStream = function($0, $1, $2) {
   return this.addEventListener($0, $wrap_call$1(to$call$1($1)), $2);
 };
@@ -2135,7 +2495,9 @@ $dynamic("$dom_addEventListener$3").MediaController = function($0, $1, $2) {
   return this.addEventListener($0, $wrap_call$1(to$call$1($1)), $2);
 };
 $inherits(_MediaElementEventsImpl, _ElementEventsImpl);
-function _MediaElementEventsImpl() {}
+function _MediaElementEventsImpl(_ptr) {
+  _ElementEventsImpl.call(this, _ptr);
+}
 $dynamic("is$List").MediaList = function(){return true};
 $dynamic("is$Collection").MediaList = function(){return true};
 $dynamic("get$length").MediaList = function() { return this.length; };
@@ -2176,16 +2538,24 @@ $dynamic("forEach$1").MediaList = function($0) {
   return this.forEach($wrap_call$1(to$call$1($0)));
 };
 $inherits(_MediaStreamEventsImpl, _EventsImpl);
-function _MediaStreamEventsImpl() {}
+function _MediaStreamEventsImpl(_ptr) {
+  _EventsImpl.call(this, _ptr);
+}
 $dynamic("get$length").MediaStreamList = function() { return this.length; };
 $dynamic("get$length").MediaStreamTrackList = function() { return this.length; };
+$dynamic("get$on").MessagePort = function() {
+  return new _MessagePortEventsImpl(this);
+}
 $dynamic("$dom_addEventListener$3").MessagePort = function($0, $1, $2) {
   return this.addEventListener($0, $wrap_call$1(to$call$1($1)), $2);
 };
 $inherits(_MessagePortEventsImpl, _EventsImpl);
-function _MessagePortEventsImpl() {}
+function _MessagePortEventsImpl(_ptr) {
+  _EventsImpl.call(this, _ptr);
+}
 $dynamic("get$name").HTMLMetaElement = function() { return this.name; };
 $dynamic("get$value").HTMLMeterElement = function() { return this.value; };
+$dynamic("set$value").HTMLMeterElement = function(value) { return this.value = value; };
 $dynamic("is$List").NamedNodeMap = function(){return true};
 $dynamic("is$Collection").NamedNodeMap = function(){return true};
 $dynamic("get$length").NamedNodeMap = function() { return this.length; };
@@ -2346,21 +2716,39 @@ $dynamic("filter$1").NodeList = function($0) {
 $dynamic("forEach$1").NodeList = function($0) {
   return this.forEach($wrap_call$1(to$call$1($0)));
 };
+$dynamic("get$on").Notification = function() {
+  return new _NotificationEventsImpl(this);
+}
 $inherits(_NotificationEventsImpl, _EventsImpl);
-function _NotificationEventsImpl() {}
+function _NotificationEventsImpl(_ptr) {
+  _EventsImpl.call(this, _ptr);
+}
+_NotificationEventsImpl.prototype.get$click = function() {
+  return this._get("click");
+}
 $dynamic("get$name").HTMLObjectElement = function() { return this.name; };
 $dynamic("get$name").OperationNotAllowedException = function() { return this.name; };
 $dynamic("get$value").HTMLOptionElement = function() { return this.value; };
+$dynamic("set$value").HTMLOptionElement = function(value) { return this.value = value; };
 $dynamic("get$name").HTMLOutputElement = function() { return this.name; };
 $dynamic("get$value").HTMLOutputElement = function() { return this.value; };
+$dynamic("set$value").HTMLOutputElement = function(value) { return this.value = value; };
 $dynamic("get$name").HTMLParamElement = function() { return this.name; };
 $dynamic("get$value").HTMLParamElement = function() { return this.value; };
+$dynamic("set$value").HTMLParamElement = function(value) { return this.value = value; };
+$dynamic("get$on").PeerConnection00 = function() {
+  return new _PeerConnection00EventsImpl(this);
+}
+$dynamic("get$readyState").PeerConnection00 = function() { return this.readyState; };
 $dynamic("$dom_addEventListener$3").PeerConnection00 = function($0, $1, $2) {
   return this.addEventListener($0, $wrap_call$1(to$call$1($1)), $2);
 };
 $inherits(_PeerConnection00EventsImpl, _EventsImpl);
-function _PeerConnection00EventsImpl() {}
+function _PeerConnection00EventsImpl(_ptr) {
+  _EventsImpl.call(this, _ptr);
+}
 $dynamic("get$value").HTMLProgressElement = function() { return this.value; };
+$dynamic("set$value").HTMLProgressElement = function(value) { return this.value = value; };
 $dynamic("get$name").RangeException = function() { return this.name; };
 $dynamic("get$length").SQLResultSetRowList = function() { return this.length; };
 $dynamic("get$elements").SVGElement = function() {
@@ -2371,26 +2759,43 @@ $dynamic("set$elements").SVGElement = function(value) {
   elements.clear$0();
   elements.addAll(value);
 }
+$dynamic("get$innerHTML").SVGElement = function() {
+  var container = _ElementFactoryProvider.Element$tag$factory("div");
+  var cloned = this.cloneNode(true);
+  container.get$elements().addAll(cloned.get$elements());
+  return container.get$innerHTML();
+}
 $dynamic("set$innerHTML").SVGElement = function(svg) {
   var container = _ElementFactoryProvider.Element$tag$factory("div");
   container.set$innerHTML(("<svg version=\"1.1\">" + svg + "</svg>"));
   this.set$elements(container.get$elements().get$first().get$elements());
 }
 $dynamic("get$value").SVGAngle = function() { return this.value; };
+$dynamic("set$value").SVGAngle = function(value) { return this.value = value; };
 $inherits(_AttributeClassSet, _CssClassSet);
 function _AttributeClassSet() {}
 _AttributeClassSet.prototype._write = function(s) {
   this._html_element.get$attributes().$setindex("class", this._formatSet(s));
 }
+$dynamic("get$on").SVGElementInstance = function() {
+  return new _SVGElementInstanceEventsImpl(this);
+}
 $inherits(_SVGElementInstanceEventsImpl, _EventsImpl);
-function _SVGElementInstanceEventsImpl() {}
+function _SVGElementInstanceEventsImpl(_ptr) {
+  _EventsImpl.call(this, _ptr);
+}
+_SVGElementInstanceEventsImpl.prototype.get$click = function() {
+  return this._get("click");
+}
 $dynamic("get$length").SVGElementInstanceList = function() { return this.length; };
 $dynamic("get$name").SVGException = function() { return this.name; };
 $dynamic("get$value").SVGLength = function() { return this.value; };
+$dynamic("set$value").SVGLength = function(value) { return this.value = value; };
 $dynamic("clear$0").SVGLengthList = function() {
   return this.clear();
 };
 $dynamic("get$value").SVGNumber = function() { return this.value; };
+$dynamic("set$value").SVGNumber = function(value) { return this.value = value; };
 $dynamic("clear$0").SVGNumberList = function() {
   return this.clear();
 };
@@ -2409,20 +2814,35 @@ $dynamic("clear$0").SVGTransformList = function() {
 $dynamic("get$length").HTMLSelectElement = function() { return this.length; };
 $dynamic("get$name").HTMLSelectElement = function() { return this.name; };
 $dynamic("get$value").HTMLSelectElement = function() { return this.value; };
+$dynamic("set$value").HTMLSelectElement = function(value) { return this.value = value; };
+$dynamic("get$innerHTML").ShadowRoot = function() { return this.innerHTML; };
 $dynamic("set$innerHTML").ShadowRoot = function(value) { return this.innerHTML = value; };
+$dynamic("get$on").SharedWorkerContext = function() {
+  return new _SharedWorkerContextEventsImpl(this);
+}
 $dynamic("get$name").SharedWorkerContext = function() { return this.name; };
 $inherits(_SharedWorkerContextEventsImpl, _WorkerContextEventsImpl);
-function _SharedWorkerContextEventsImpl() {}
+function _SharedWorkerContextEventsImpl(_ptr) {
+  _WorkerContextEventsImpl.call(this, _ptr);
+}
 $dynamic("get$length").SpeechGrammarList = function() { return this.length; };
 $dynamic("get$length").SpeechInputResultList = function() { return this.length; };
+$dynamic("get$on").SpeechRecognition = function() {
+  return new _SpeechRecognitionEventsImpl(this);
+}
 $dynamic("$dom_addEventListener$3").SpeechRecognition = function($0, $1, $2) {
   return this.addEventListener($0, $wrap_call$1(to$call$1($1)), $2);
 };
 $inherits(_SpeechRecognitionEventsImpl, _EventsImpl);
-function _SpeechRecognitionEventsImpl() {}
+function _SpeechRecognitionEventsImpl(_ptr) {
+  _EventsImpl.call(this, _ptr);
+}
 $dynamic("get$length").SpeechRecognitionResult = function() { return this.length; };
 $dynamic("get$length").SpeechRecognitionResultList = function() { return this.length; };
 $dynamic("is$Map").Storage = function(){return true};
+$dynamic("containsKey").Storage = function(key) {
+  return this.getItem(key) != null;
+}
 $dynamic("$index").Storage = function(key) {
   return this.getItem(key);
 }
@@ -2498,23 +2918,39 @@ $dynamic("forEach$1").StyleSheetList = function($0) {
 };
 $dynamic("get$name").HTMLTextAreaElement = function() { return this.name; };
 $dynamic("get$value").HTMLTextAreaElement = function() { return this.value; };
+$dynamic("set$value").HTMLTextAreaElement = function(value) { return this.value = value; };
+$dynamic("get$on").TextTrack = function() {
+  return new _TextTrackEventsImpl(this);
+}
 $dynamic("$dom_addEventListener$3").TextTrack = function($0, $1, $2) {
   return this.addEventListener($0, $wrap_call$1(to$call$1($1)), $2);
 };
 $inherits(_TextTrackEventsImpl, _EventsImpl);
-function _TextTrackEventsImpl() {}
+function _TextTrackEventsImpl(_ptr) {
+  _EventsImpl.call(this, _ptr);
+}
+$dynamic("get$on").TextTrackCue = function() {
+  return new _TextTrackCueEventsImpl(this);
+}
 $dynamic("$dom_addEventListener$3").TextTrackCue = function($0, $1, $2) {
   return this.addEventListener($0, $wrap_call$1(to$call$1($1)), $2);
 };
 $inherits(_TextTrackCueEventsImpl, _EventsImpl);
-function _TextTrackCueEventsImpl() {}
+function _TextTrackCueEventsImpl(_ptr) {
+  _EventsImpl.call(this, _ptr);
+}
 $dynamic("get$length").TextTrackCueList = function() { return this.length; };
+$dynamic("get$on").TextTrackList = function() {
+  return new _TextTrackListEventsImpl(this);
+}
 $dynamic("get$length").TextTrackList = function() { return this.length; };
 $dynamic("$dom_addEventListener$3").TextTrackList = function($0, $1, $2) {
   return this.addEventListener($0, $wrap_call$1(to$call$1($1)), $2);
 };
 $inherits(_TextTrackListEventsImpl, _EventsImpl);
-function _TextTrackListEventsImpl() {}
+function _TextTrackListEventsImpl(_ptr) {
+  _EventsImpl.call(this, _ptr);
+}
 $dynamic("get$length").TimeRanges = function() { return this.length; };
 $dynamic("is$List").TouchList = function(){return true};
 $dynamic("is$Collection").TouchList = function(){return true};
@@ -2555,6 +2991,7 @@ $dynamic("filter$1").TouchList = function($0) {
 $dynamic("forEach$1").TouchList = function($0) {
   return this.forEach($wrap_call$1(to$call$1($0)));
 };
+$dynamic("get$readyState").HTMLTrackElement = function() { return this.readyState; };
 $dynamic("is$List").Uint16Array = function(){return true};
 $dynamic("is$Collection").Uint16Array = function(){return true};
 $dynamic("get$length").Uint16Array = function() { return this.length; };
@@ -2673,31 +3110,76 @@ $dynamic("forEach$1").Uint8Array = function($0) {
   return this.forEach($wrap_call$1(to$call$1($0)));
 };
 $dynamic("get$name").WebGLActiveInfo = function() { return this.name; };
+$dynamic("get$on").WebSocket = function() {
+  return new _WebSocketEventsImpl(this);
+}
+$dynamic("get$readyState").WebSocket = function() { return this.readyState; };
 $dynamic("$dom_addEventListener$3").WebSocket = function($0, $1, $2) {
   return this.addEventListener($0, $wrap_call$1(to$call$1($1)), $2);
 };
 $inherits(_WebSocketEventsImpl, _EventsImpl);
-function _WebSocketEventsImpl() {}
+function _WebSocketEventsImpl(_ptr) {
+  _EventsImpl.call(this, _ptr);
+}
+$dynamic("get$on").DOMWindow = function() {
+  return new _WindowEventsImpl(this);
+}
 $dynamic("get$length").DOMWindow = function() { return this.length; };
 $dynamic("get$name").DOMWindow = function() { return this.name; };
+$dynamic("get$status").DOMWindow = function() { return this.status; };
 $dynamic("$dom_addEventListener$3").DOMWindow = function($0, $1, $2) {
   return this.addEventListener($0, $wrap_call$1(to$call$1($1)), $2);
 };
+$dynamic("open$3").DOMWindow = function($0, $1, $2) {
+  return this.open($0, $1, $2);
+};
 $inherits(_WindowEventsImpl, _EventsImpl);
-function _WindowEventsImpl() {}
+function _WindowEventsImpl(_ptr) {
+  _EventsImpl.call(this, _ptr);
+}
+_WindowEventsImpl.prototype.get$click = function() {
+  return this._get("click");
+}
+$dynamic("get$on").Worker = function() {
+  return new _WorkerEventsImpl(this);
+}
 $inherits(_WorkerEventsImpl, _AbstractWorkerEventsImpl);
-function _WorkerEventsImpl() {}
+function _WorkerEventsImpl(_ptr) {
+  _AbstractWorkerEventsImpl.call(this, _ptr);
+}
+$dynamic("get$on").XMLHttpRequest = function() {
+  return new _XMLHttpRequestEventsImpl(this);
+}
+$dynamic("get$readyState").XMLHttpRequest = function() { return this.readyState; };
+$dynamic("get$status").XMLHttpRequest = function() { return this.status; };
+$dynamic("set$withCredentials").XMLHttpRequest = function(value) { return this.withCredentials = value; };
 $dynamic("$dom_addEventListener$3").XMLHttpRequest = function($0, $1, $2) {
   return this.addEventListener($0, $wrap_call$1(to$call$1($1)), $2);
 };
+$dynamic("open$3").XMLHttpRequest = function($0, $1, $2) {
+  return this.open($0, $1, $2);
+};
+$dynamic("send$0").XMLHttpRequest = function() {
+  return this.send();
+};
 $inherits(_XMLHttpRequestEventsImpl, _EventsImpl);
-function _XMLHttpRequestEventsImpl() {}
+function _XMLHttpRequestEventsImpl(_ptr) {
+  _EventsImpl.call(this, _ptr);
+}
+_XMLHttpRequestEventsImpl.prototype.get$readyStateChange = function() {
+  return this._get("readystatechange");
+}
 $dynamic("get$name").XMLHttpRequestException = function() { return this.name; };
+$dynamic("get$on").XMLHttpRequestUpload = function() {
+  return new _XMLHttpRequestUploadEventsImpl(this);
+}
 $dynamic("$dom_addEventListener$3").XMLHttpRequestUpload = function($0, $1, $2) {
   return this.addEventListener($0, $wrap_call$1(to$call$1($1)), $2);
 };
 $inherits(_XMLHttpRequestUploadEventsImpl, _EventsImpl);
-function _XMLHttpRequestUploadEventsImpl() {}
+function _XMLHttpRequestUploadEventsImpl(_ptr) {
+  _EventsImpl.call(this, _ptr);
+}
 $dynamic("get$name").XPathException = function() { return this.name; };
 function _AudioElementFactoryProvider() {}
 function _BlobBuilderFactoryProvider() {}
@@ -2724,6 +3206,12 @@ function _SpeechRecognitionFactoryProvider() {}
 function _TextTrackCueFactoryProvider() {}
 function _WorkerFactoryProvider() {}
 function _XMLHttpRequestFactoryProvider() {}
+_XMLHttpRequestFactoryProvider.XMLHttpRequest$factory = function() {
+  return new XMLHttpRequest();
+}
+_XMLHttpRequestFactoryProvider.XMLHttpRequest$get$factory = function(url, onSuccess) {
+  return _XMLHttpRequestUtils.get(url, onSuccess);
+}
 function _XMLSerializerFactoryProvider() {}
 function _XPathEvaluatorFactoryProvider() {}
 function _XSLTProcessorFactoryProvider() {}
@@ -2742,8 +3230,22 @@ _Collections.filter = function(source, destination, f) {
   return destination;
 }
 function _XMLHttpRequestUtils() {}
+_XMLHttpRequestUtils.get = function(url, onSuccess) {
+  var request = _XMLHttpRequestFactoryProvider.XMLHttpRequest$factory();
+  request.open$3("GET", url, true);
+  request.set$withCredentials(true);
+  request.get$on().get$readyStateChange().add((function (e) {
+    if ($eq$(request.get$readyState(), (4)) && ($eq$(request.get$status(), (200)) || $eq$(request.get$status(), (0)))) {
+      onSuccess(request);
+    }
+  })
+  , false);
+  request.send$0();
+  return request;
+}
 function _MeasurementRequest() {}
 _MeasurementRequest.prototype.get$value = function() { return this.value; };
+_MeasurementRequest.prototype.set$value = function(value) { return this.value = value; };
 function _EventFactoryProvider() {}
 function _MouseEventFactoryProvider() {}
 function _CSSStyleDeclarationFactoryProvider() {}
@@ -2850,35 +3352,55 @@ MyApp.prototype.write = function(message) {
 }
 function main() {
   new MyApp().run();
+  addUiElements();
+}
+function addUiElements() {
+  var elements = _ElementFactoryProvider.Element$html$factory("<div id=\"example\">\n  Enter some text:<input id=\"myTextbox\" value=\"helloWorld\"></input>\n  <button id=\"myButton\">Send request to server</button></br/>\n  <span id=\"requestSpan\">Request=</span><br />\n  <span id=\"responseSpan\">Response=</span></br />\n</div>\n");
+  get$$document().body.get$nodes().add(elements);
+  var button = get$$document().body.querySelector("#myButton");
+  button.get$on().get$click().add$1(function EventListener(data) {
+    var textbox = get$$document().body.querySelector("#myTextbox");
+    var requestSpan = get$$document().body.querySelector("#requestSpan");
+    requestSpan.set$innerHTML($add$(requestSpan.get$innerHTML(), ("" + textbox.value + " <br />")));
+    var url = ("http://127.0.0.1:8080/" + textbox.value);
+    var request = _XMLHttpRequestFactoryProvider.XMLHttpRequest$get$factory(url, $wrap_call$1((function (request) {
+      var responseSpan = get$$document().body.querySelector("#responseSpan");
+      responseSpan.set$innerHTML($add$(responseSpan.get$innerHTML(), ("" + request.responseText + " <br />")));
+    })
+    ));
+  }
+  );
 }
 (function(){
-  var v0/*SVGElement*/ = 'SVGElement|SVGAElement|SVGAltGlyphDefElement|SVGAltGlyphItemElement|SVGAnimationElement|SVGAnimateColorElement|SVGAnimateElement|SVGAnimateMotionElement|SVGAnimateTransformElement|SVGSetElement|SVGCircleElement|SVGClipPathElement|SVGComponentTransferFunctionElement|SVGFEFuncAElement|SVGFEFuncBElement|SVGFEFuncGElement|SVGFEFuncRElement|SVGCursorElement|SVGDefsElement|SVGDescElement|SVGEllipseElement|SVGFEBlendElement|SVGFEColorMatrixElement|SVGFEComponentTransferElement|SVGFECompositeElement|SVGFEConvolveMatrixElement|SVGFEDiffuseLightingElement|SVGFEDisplacementMapElement|SVGFEDistantLightElement|SVGFEDropShadowElement|SVGFEFloodElement|SVGFEGaussianBlurElement|SVGFEImageElement|SVGFEMergeElement|SVGFEMergeNodeElement|SVGFEMorphologyElement|SVGFEOffsetElement|SVGFEPointLightElement|SVGFESpecularLightingElement|SVGFESpotLightElement|SVGFETileElement|SVGFETurbulenceElement|SVGFilterElement|SVGFontElement|SVGFontFaceElement|SVGFontFaceFormatElement|SVGFontFaceNameElement|SVGFontFaceSrcElement|SVGFontFaceUriElement|SVGForeignObjectElement|SVGGElement|SVGGlyphElement|SVGGlyphRefElement|SVGGradientElement|SVGLinearGradientElement|SVGRadialGradientElement|SVGHKernElement|SVGImageElement|SVGLineElement|SVGMPathElement|SVGMarkerElement|SVGMaskElement|SVGMetadataElement|SVGMissingGlyphElement|SVGPathElement|SVGPatternElement|SVGPolygonElement|SVGPolylineElement|SVGRectElement|SVGSVGElement|SVGScriptElement|SVGStopElement|SVGStyleElement|SVGSwitchElement|SVGSymbolElement|SVGTextContentElement|SVGTextPathElement|SVGTextPositioningElement|SVGAltGlyphElement|SVGTRefElement|SVGTSpanElement|SVGTextElement|SVGTitleElement|SVGUseElement|SVGVKernElement|SVGViewElement';
-  var v1/*CharacterData*/ = 'CharacterData|Comment|Text|CDATASection';
-  var v2/*HTMLDocument*/ = 'HTMLDocument|SVGDocument';
-  var v3/*DocumentFragment*/ = 'DocumentFragment|ShadowRoot';
-  var v4/*Element*/ = [v0/*SVGElement*/,'Element|HTMLElement|HTMLAnchorElement|HTMLAppletElement|HTMLAreaElement|HTMLBRElement|HTMLBaseElement|HTMLBaseFontElement|HTMLBodyElement|HTMLButtonElement|HTMLCanvasElement|HTMLContentElement|HTMLDListElement|HTMLDetailsElement|HTMLDirectoryElement|HTMLDivElement|HTMLEmbedElement|HTMLFieldSetElement|HTMLFontElement|HTMLFormElement|HTMLFrameElement|HTMLFrameSetElement|HTMLHRElement|HTMLHeadElement|HTMLHeadingElement|HTMLHtmlElement|HTMLIFrameElement|HTMLImageElement|HTMLInputElement|HTMLKeygenElement|HTMLLIElement|HTMLLabelElement|HTMLLegendElement|HTMLLinkElement|HTMLMapElement|HTMLMarqueeElement|HTMLMediaElement|HTMLAudioElement|HTMLVideoElement|HTMLMenuElement|HTMLMetaElement|HTMLMeterElement|HTMLModElement|HTMLOListElement|HTMLObjectElement|HTMLOptGroupElement|HTMLOptionElement|HTMLOutputElement|HTMLParagraphElement|HTMLParamElement|HTMLPreElement|HTMLProgressElement|HTMLQuoteElement|HTMLScriptElement|HTMLSelectElement|HTMLShadowElement|HTMLSourceElement|HTMLSpanElement|HTMLStyleElement|HTMLTableCaptionElement|HTMLTableCellElement|HTMLTableColElement|HTMLTableElement|HTMLTableRowElement|HTMLTableSectionElement|HTMLTextAreaElement|HTMLTitleElement|HTMLTrackElement|HTMLUListElement|HTMLUnknownElement'].join('|');
-  var v5/*AbstractWorker*/ = 'AbstractWorker|SharedWorker|Worker';
-  var v6/*IDBRequest*/ = 'IDBRequest|IDBVersionChangeRequest';
-  var v7/*MediaStream*/ = 'MediaStream|LocalMediaStream';
-  var v8/*Node*/ = [v1/*CharacterData*/,v2/*HTMLDocument*/,v3/*DocumentFragment*/,v4/*Element*/,'Node|Attr|DocumentType|Entity|EntityReference|Notation|ProcessingInstruction'].join('|');
-  var v9/*WorkerContext*/ = 'WorkerContext|DedicatedWorkerContext|SharedWorkerContext';
+  var v0/*HTMLMediaElement*/ = 'HTMLMediaElement|HTMLAudioElement|HTMLVideoElement';
+  var v1/*SVGElement*/ = 'SVGElement|SVGAElement|SVGAltGlyphDefElement|SVGAltGlyphItemElement|SVGAnimationElement|SVGAnimateColorElement|SVGAnimateElement|SVGAnimateMotionElement|SVGAnimateTransformElement|SVGSetElement|SVGCircleElement|SVGClipPathElement|SVGComponentTransferFunctionElement|SVGFEFuncAElement|SVGFEFuncBElement|SVGFEFuncGElement|SVGFEFuncRElement|SVGCursorElement|SVGDefsElement|SVGDescElement|SVGEllipseElement|SVGFEBlendElement|SVGFEColorMatrixElement|SVGFEComponentTransferElement|SVGFECompositeElement|SVGFEConvolveMatrixElement|SVGFEDiffuseLightingElement|SVGFEDisplacementMapElement|SVGFEDistantLightElement|SVGFEDropShadowElement|SVGFEFloodElement|SVGFEGaussianBlurElement|SVGFEImageElement|SVGFEMergeElement|SVGFEMergeNodeElement|SVGFEMorphologyElement|SVGFEOffsetElement|SVGFEPointLightElement|SVGFESpecularLightingElement|SVGFESpotLightElement|SVGFETileElement|SVGFETurbulenceElement|SVGFilterElement|SVGFontElement|SVGFontFaceElement|SVGFontFaceFormatElement|SVGFontFaceNameElement|SVGFontFaceSrcElement|SVGFontFaceUriElement|SVGForeignObjectElement|SVGGElement|SVGGlyphElement|SVGGlyphRefElement|SVGGradientElement|SVGLinearGradientElement|SVGRadialGradientElement|SVGHKernElement|SVGImageElement|SVGLineElement|SVGMPathElement|SVGMarkerElement|SVGMaskElement|SVGMetadataElement|SVGMissingGlyphElement|SVGPathElement|SVGPatternElement|SVGPolygonElement|SVGPolylineElement|SVGRectElement|SVGSVGElement|SVGScriptElement|SVGStopElement|SVGStyleElement|SVGSwitchElement|SVGSymbolElement|SVGTextContentElement|SVGTextPathElement|SVGTextPositioningElement|SVGAltGlyphElement|SVGTRefElement|SVGTSpanElement|SVGTextElement|SVGTitleElement|SVGUseElement|SVGVKernElement|SVGViewElement';
+  var v2/*CharacterData*/ = 'CharacterData|Comment|Text|CDATASection';
+  var v3/*HTMLDocument*/ = 'HTMLDocument|SVGDocument';
+  var v4/*DocumentFragment*/ = 'DocumentFragment|ShadowRoot';
+  var v5/*Element*/ = [v0/*HTMLMediaElement*/,v1/*SVGElement*/,'Element|HTMLElement|HTMLAnchorElement|HTMLAppletElement|HTMLAreaElement|HTMLBRElement|HTMLBaseElement|HTMLBaseFontElement|HTMLBodyElement|HTMLButtonElement|HTMLCanvasElement|HTMLContentElement|HTMLDListElement|HTMLDetailsElement|HTMLDirectoryElement|HTMLDivElement|HTMLEmbedElement|HTMLFieldSetElement|HTMLFontElement|HTMLFormElement|HTMLFrameElement|HTMLFrameSetElement|HTMLHRElement|HTMLHeadElement|HTMLHeadingElement|HTMLHtmlElement|HTMLIFrameElement|HTMLImageElement|HTMLInputElement|HTMLKeygenElement|HTMLLIElement|HTMLLabelElement|HTMLLegendElement|HTMLLinkElement|HTMLMapElement|HTMLMarqueeElement|HTMLMenuElement|HTMLMetaElement|HTMLMeterElement|HTMLModElement|HTMLOListElement|HTMLObjectElement|HTMLOptGroupElement|HTMLOptionElement|HTMLOutputElement|HTMLParagraphElement|HTMLParamElement|HTMLPreElement|HTMLProgressElement|HTMLQuoteElement|HTMLScriptElement|HTMLSelectElement|HTMLShadowElement|HTMLSourceElement|HTMLSpanElement|HTMLStyleElement|HTMLTableCaptionElement|HTMLTableCellElement|HTMLTableColElement|HTMLTableElement|HTMLTableRowElement|HTMLTableSectionElement|HTMLTextAreaElement|HTMLTitleElement|HTMLTrackElement|HTMLUListElement|HTMLUnknownElement'].join('|');
+  var v6/*AbstractWorker*/ = 'AbstractWorker|SharedWorker|Worker';
+  var v7/*IDBRequest*/ = 'IDBRequest|IDBVersionChangeRequest';
+  var v8/*MediaStream*/ = 'MediaStream|LocalMediaStream';
+  var v9/*Node*/ = [v2/*CharacterData*/,v3/*HTMLDocument*/,v4/*DocumentFragment*/,v5/*Element*/,'Node|Attr|DocumentType|Entity|EntityReference|Notation|ProcessingInstruction'].join('|');
+  var v10/*WorkerContext*/ = 'WorkerContext|DedicatedWorkerContext|SharedWorkerContext';
   var table = [
-    ['AbstractWorker', v5/*AbstractWorker*/]
+    ['AbstractWorker', v6/*AbstractWorker*/]
     , ['AudioParam', 'AudioParam|AudioGain']
     , ['CSSValueList', 'CSSValueList|WebKitCSSTransformValue|WebKitCSSFilterValue']
-    , ['CharacterData', v1/*CharacterData*/]
+    , ['CharacterData', v2/*CharacterData*/]
     , ['DOMTokenList', 'DOMTokenList|DOMSettableTokenList']
-    , ['HTMLDocument', v2/*HTMLDocument*/]
-    , ['DocumentFragment', v3/*DocumentFragment*/]
-    , ['SVGElement', v0/*SVGElement*/]
-    , ['Element', v4/*Element*/]
+    , ['HTMLDocument', v3/*HTMLDocument*/]
+    , ['DocumentFragment', v4/*DocumentFragment*/]
+    , ['HTMLMediaElement', v0/*HTMLMediaElement*/]
+    , ['SVGElement', v1/*SVGElement*/]
+    , ['Element', v5/*Element*/]
     , ['Entry', 'Entry|DirectoryEntry|FileEntry']
     , ['EntrySync', 'EntrySync|DirectoryEntrySync|FileEntrySync']
-    , ['IDBRequest', v6/*IDBRequest*/]
-    , ['MediaStream', v7/*MediaStream*/]
-    , ['Node', v8/*Node*/]
-    , ['WorkerContext', v9/*WorkerContext*/]
-    , ['EventTarget', [v5/*AbstractWorker*/,v6/*IDBRequest*/,v7/*MediaStream*/,v8/*Node*/,v9/*WorkerContext*/,'EventTarget|AudioContext|BatteryManager|DOMApplicationCache|DeprecatedPeerConnection|EventSource|FileReader|FileWriter|IDBDatabase|IDBTransaction|MediaController|MessagePort|Notification|PeerConnection00|SpeechRecognition|TextTrack|TextTrackCue|TextTrackList|WebSocket|DOMWindow|XMLHttpRequest|XMLHttpRequestUpload'].join('|')]
+    , ['IDBRequest', v7/*IDBRequest*/]
+    , ['MediaStream', v8/*MediaStream*/]
+    , ['Node', v9/*Node*/]
+    , ['WorkerContext', v10/*WorkerContext*/]
+    , ['EventTarget', [v6/*AbstractWorker*/,v7/*IDBRequest*/,v8/*MediaStream*/,v9/*Node*/,v10/*WorkerContext*/,'EventTarget|AudioContext|BatteryManager|DOMApplicationCache|DeprecatedPeerConnection|EventSource|FileReader|FileWriter|IDBDatabase|IDBTransaction|MediaController|MessagePort|Notification|PeerConnection00|SpeechRecognition|TextTrack|TextTrackCue|TextTrackList|WebSocket|DOMWindow|XMLHttpRequest|XMLHttpRequestUpload'].join('|')]
     , ['HTMLCollection', 'HTMLCollection|HTMLOptionsCollection']
     , ['Uint8Array', 'Uint8Array|Uint8ClampedArray']
   ];
@@ -2891,6 +3413,9 @@ var const$0001 = Object.create(NoMoreElementsException.prototype, {});
 var const$0002 = Object.create(EmptyQueueException.prototype, {});
 var const$0003 = Object.create(UnsupportedOperationException.prototype, {_message: {"value": "", writeable: false}});
 var const$0004 = new JSSyntaxRegExp("^#[_a-zA-Z]\\w*$");
+var const$0005 = new JSSyntaxRegExp("<(\\w+)");
+var const$0006 = Object.create(IllegalAccessException.prototype, {});
+var const$0007 = _constMap(["body", "html", "head", "html", "caption", "table", "td", "tr", "colgroup", "table", "col", "colgroup", "tr", "tbody", "tbody", "table", "tfoot", "table", "thead", "table", "track", "audio"]);
 $static_init();
 if (typeof window != 'undefined' && typeof document != 'undefined' &&
     window.addEventListener && document.readyState == 'loading') {
