@@ -22,6 +22,7 @@ void main() {
 }
 
 addUiElements() {
+  // build the elements and add them to the UI 
   var elements = new Element.html("""
 <div id="example">
   Enter some text:<input id="myTextbox" value="helloWorld"></input>
@@ -32,9 +33,9 @@ addUiElements() {
 """);
   document.body.nodes.add(elements);
   
-  // add an event handler to the button
   ButtonElement button = document.body.query("#myButton"); // get a handle on the button
   
+  // add an event handler to the button
   button.on.click.add(EventListener (data) {
     // perform an XHR request to the server
     // for the url entered into the textbox
@@ -53,6 +54,7 @@ addUiElements() {
     // add a callback which will be executed on the server
     XMLHttpRequest request = new XMLHttpRequest.get(url, (XMLHttpRequest request) {
       SpanElement responseSpan = document.body.query("#responseSpan"); // get the response span
+      
       responseSpan.innerHTML += "${request.responseText} <br />"; // add the output to the UI 
     }); 
   });
