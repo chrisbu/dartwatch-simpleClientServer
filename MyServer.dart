@@ -4,7 +4,7 @@
 main() {
   HttpServer server = new HttpServer(); // create the server
   server.addRequestHandler(matchMyApp, myAppHandler); //if any request begins with myApp, handle it
-  //server.defaultRequestHandler = defaultHandler; //assign the handler function (defined below)
+  server.defaultRequestHandler = defaultHandler; //assign the handler function (defined below)
   server.listen("127.0.0.1", 8080); // and start listening
   print("listening on http://127.0.0.1:8080");
 }
